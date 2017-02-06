@@ -11,18 +11,18 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-## Data Management
+# Data Management
 Loading data from current directory
 ```{r}
 data <- read.table("videodata.txt", header=TRUE)
 data.population <- 314     # True population
-editData <- data     # Copy of data for the purpose of editting; a temp variable
+editData <- data           # Copy of data for the purpose of editting; a temp variable
 head(data)
 summary(data)
 ```
 
 
-# Cleaning Data
+## Cleaning Data
 Replacing 99 values (the unanswered/improper results) with NAs
 ```{r}
 editData[editData == 99] <- NA
@@ -33,9 +33,9 @@ summary(editData)
 
 
 
-## Scenario 1
+# Scenario 1
 
-# Sample Proportion of Students Who Played a Video Game in the Last Week
+## Sample Proportion of Students Who Played a Video Game in the Last Week
 The individual variables measured here are Bernoulli since time is being converted to a binary 'did' or 'did not' play.
 ```{r}
 # Create 'numPlayers' variable to count number of players in the last week.
@@ -52,7 +52,7 @@ paste("Sample proportion:", editData.playersSampleProportion, sep=" ")
 ```
 
 
-# Players Sample Proportion Confidence Interval
+## Players Sample Proportion Confidence Interval
 Since the sample Bernoulli variables are NOT identically independentally distributed, the confidence interval itself will be computed utilizing the finite population correction factor.
 ```{r}
 # Sample proportion is nearly Binomial, except not iid.
@@ -66,6 +66,7 @@ paste("Corrected Standard Error:", editData.playersStandardErrorEstimate, sep=" 
 # Since the sample proportion follows a normal distribution by the Central Limit Theorem,
 # we need to multiply the corrected standard error by 1.96 to generate the interval.
 editData.playersMarginOfError <- 1.96*editData.playersStandardErrorEstimate
+paste("Margin of Error: ", editData.playersMarginOfError, sep="")
 
 # Therefore, the confidence interval:
 playersLowerBound <- editData.playersSampleProportion - editData.playersMarginOfError
@@ -76,14 +77,14 @@ paste("Player Proportion 95% CI: ", "(",playersLowerBound, ", ", playersUpperBou
 
 
 
+ANALYSIS TEST AREA
+```{r}
+# Finding the distribution of the time variable
+hist(editData$time, breaks = 1000, xlim = c(0,2))
+hist(rgeom(91, 1/mean(editData$time)), breaks = 30)
 
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
