@@ -8,8 +8,12 @@ author:
 date: "2/5/2017"
 output:
   pdf_document: default
-  word_document: default
 ---
+## Download necessary packages
+```{r, results="hide"}
+# Install gmodels for cross-tabulation
+install.packages('gmodels',repos="http://cran.rstudio.com/")
+```
 
 # Data Management
 Loading data from current directory
@@ -166,60 +170,17 @@ paste("Proportion of Like: ", proportionLike, sep="")
 
 # Scenario 5
 ```{r}
-#didn't use graphing or cross tabulation
-#18+30=48 people who own a computer like playing games
-play2_comp <- NROW(which(data$like==2 & data$own == 1))
-play3_comp <- NROW(which(data$like==3 & data$own == 1))
+# Using gmodels library
+library(gmodels)
 
-#1+12+5=18 people who own a computer don't like playing games
-noplay1_comp <- NROW(which(data$like==1 & data$own==1))
-noplay4_comp <- NROW(which(data$like==4 & data$own==1))
-noplay5_comp <- NROW(which(data$like==5 & data$own==1))
+#Cross-Tabulation for owning a computer/like playing games
+CrossTable(data$like, data$own)
 
-#5+16=21 people who don't own a computer like playing games
-play2_nocomp <- NROW(which(data$like==2 & data$own == 0))
-play3_nocomp <- NROW(which(data$like==3 & data$own == 0))
+#Cross-Tabulation for working/like playing games
+CrossTable(data$like, data$work==0)
 
-#0+1+2=3 people who don't own a computer don't like playing games
-noplay1_nocomp <- NROW(which(data$like==1 & data$own==0))
-noplay4_nocomp <- NROW(which(data$like==4 & data$own==0))
-noplay5_nocomp <- NROW(which(data$like==5 & data$own==0))
-
-#14+25=39 people who like games worked
-play2_work <- NROW(which(data$like==2 & data$work>0))
-play3_work <- NROW(which(data$like==3 & data$work>0))
-
-#1+3+3=7 people who don't like games worked
-play1_work <- NROW(which(data$like==1 & data$work>0))
-play4_work <- NROW(which(data$like==4 & data$work>0))
-play5_work <- NROW(which(data$like==5 & data$work>0))
-
-#9+21=30 people who like games don't work
-play2_nowork <- NROW(which(data$like==2 & data$work==0))
-play3_nowork <- NROW(which(data$like==3 & data$work==0))
-
-#0+10+4=14 people who don't like games don't worked
-noplay1_nowork <- NROW(which(data$like==1 & data$work==0))
-noplay4_nowork <- NROW(which(data$like==4 & data$work==0))
-noplay5_nowork <- NROW(which(data$like==5 & data$work==0))
-
-#18+25=43 males who like games
-play2_male <- NROW(which(data$like==2 & data$sex==1))
-play3_male <- NROW(which(data$like==3 & data$sex==1))
-
-#1+5+3=9 males who don't like games
-play1_male <- NROW(which(data$like==1 & data$sex==1))
-play4_male <- NROW(which(data$like==4 & data$sex==1))
-play5_male <- NROW(which(data$like==5 & data$sex==1))
-
-#5+21=26 females who like games
-play2_female <- NROW(which(data$like==2 & data$sex==0))
-play3_female <- NROW(which(data$like==3 & data$sex==0))
-
-#0+8+4=12 females who don't like games
-play1_female <- NROW(which(data$like==1 & data$sex==0))
-play4_female <- NROW(which(data$like==4 & data$sex==0))
-play5_female <- NROW(which(data$like==5 & data$sex==0))
+#Cross-Tabultion for sex/like playing games
+CrossTable(data$like, data$sex)
 ```
 
 # Scenario 6
