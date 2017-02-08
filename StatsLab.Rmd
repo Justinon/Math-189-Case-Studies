@@ -1,5 +1,5 @@
 ---
-title: "StatsLab Code"
+title: "StatsLab RCode Report"
 author:
 - Justin Glommen (Scenarios 1,4)
 - Victor Angulo (Scenarios 3,6)
@@ -10,7 +10,7 @@ output:
   pdf_document: default
 ---
 ## Download necessary packages
-```{r, results="hide"}
+```{r, eval=FALSE, results="hide"}
 # Install gmodels for cross-tabulation
 install.packages('gmodels',repos="http://cran.rstudio.com/")
 ```
