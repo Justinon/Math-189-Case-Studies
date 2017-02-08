@@ -1,5 +1,5 @@
 ---
-title: "StatsLab"
+title: "StatsLab Code"
 author:
 - Justin Glommen (Scenarios 1,4)
 - Victor Angulo (Scenarios 3,6)
