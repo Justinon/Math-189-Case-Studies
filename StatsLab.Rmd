@@ -9,10 +9,11 @@ date: "2/5/2017"
 output:
   pdf_document: default
 ---
+```{r, include=FALSE, results="hide"}
 ## Download necessary packages
-```{r, eval=FALSE, results="hide"}
+
 # Install gmodels for cross-tabulation
-install.packages('gmodels',repos="http://cran.rstudio.com/")
+install.packages('gmodels', repos="http://cran.rstudio.com/")
 ```
 
 # Data Management
@@ -130,8 +131,10 @@ mean(data.notbusy$time)
 nogame.ind <- which(data['time'] == 0.0) #Identify those who did not play video games the week prior
 data.nogame <- data[nogame.ind,] #Create a data frame with no gamers
 n1 <- length(data.nogame$time) #Calculates the # of students that played video games
-prop.nogame <- (n1)/91 #Calculates the proportion (# that don't play/sample size)
-sd.prop.nogame <- sqrt( (.6263736)*(1-.6263736)/90 )*sqrt((314-91)/314 ) #Calculates the sd of those that don't game
+#Calculates the proportion (# that don't play/sample size)
+prop.nogame <- (n1)/91
+#Calculates the sd of those that don't game
+sd.prop.nogame <- sqrt( (.6263736)*(1-.6263736)/90 )*sqrt((314-91)/314 ) 
 prop.nogame.ci <- prop.nogame + c(-1, 1)*2*sd.prop.nogame #Creates the CI
 
 #Histogram of sample time spent playing
@@ -147,7 +150,8 @@ for (i in 1:B)
   {
   boot.sample[i, ] <- sample(boot.population, size = 91, replace = FALSE)
 }
-boot.mean <- apply(X = boot.sample, MARGIN = 1, FUN = mean) #Here we take the sample mean of each sample
+#Here we take the sample mean of each sample
+boot.mean <- apply(X = boot.sample, MARGIN = 1, FUN = mean)
 ci.boot <- c(quantile(boot.mean,0.025), quantile(boot.mean, 0.975))
 
 ```
