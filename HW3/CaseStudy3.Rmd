@@ -1,0 +1,106 @@
+---
+title: "CaseStudy3"
+author: "Justin Glommen"
+date: "2/23/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Setup
+Setting up the dataset and the actual data realization information into accessible variables for analysis.
+
+```{r cars}
+# Assuming the data is from the same working directory as this file
+gene <- read.table("hcmv.txt", header=TRUE)
+# Actual data
+N <- 229354     # Population size
+n <- 296        # Sample number of palindromes
+editGene <- gene
+site.random <- editGene[["location"]]
+# Display the data
+site.random
+```
+
+# The Data
+Here a strip plot is shown to visualize where palindromes are distributed, by laying out all possible palindrome location sites and displaying binary values representative of palindrome occurances.
+
+```{r}
+library(lattice)
+stripplot(site.random, pch=16, cex=0.25, xlab="Palindrome Location (Actualized Data)")
+```
+
+# Testing
+
+## Uniform Random Distribution by Simple Random Sampling
+```{r}
+# Pseudo data for simulation
+set.seed(22217)     # Setting seed for the date at which this analysis was performed
+gene <- seq(1, N)
+# Produce simple random sample
+site.random <- sample.int(N, size=n)
+site.random
+```
+
+Plotting the uniform random distribution with a strip plot, we can compare it to the actualized data above.
+
+```{r}
+library(lattice)
+stripplot(site.random, pch=16, cex=0.25, xlab="Palindrome Location (Simple Random Simulation)")
+```
+
+It's easy to notice that while although similar, the actualized data may appear to have a couple more dense clusters than what was generated via the simple sample. We will need to perform more testing to confirm whether these apparent clusters are statistically significant within the actualized data.
+
+
+## Chi-Squared Test
+```{r}
+regionsplit <- function(n.region, gene, site){
+  count.int <- table(cut(site, breaks = seq(1, length(gene), length.out=n.region+1), include.lowest=TRUE))
+  count.vector <- as.vector(count.int)
+  count.tab <- table(count.vector)
+  return (count.tab)
+}
+
+n.region <- 50
+regionsplit(n.region, gene, site.random)
+
+chisqtable <- function(n.region, site, N){
+  n <- length(site)
+  # lambda estimate
+  lambda.est <- n/n.region
+  # cut into n.region number of non-overlapping intervals
+  count.int <- table(cut(site, breaks = seq(1, length(gene), length.out=n.region+1), include.lowest=TRUE))
+  # get the count levels range
+  count.vector <- as.vector(count.int)
+  count.range <- max(count.vector) - min(count.vector) + 1
+  
+  # create contingency table
+  table <- matrix(rep(NA, count.range*3), count.range, 3)
+  for (i in 1:count.range){
+    offset <- min(count.vector) - 1
+    # first column = count level
+    table[i, 1] <- i + offset
+    # second column = observed count
+    table[i, 2] <- sum(count.vector == i + offset)
+    # third column = expected count
+    if ((i + offset == min(count.vector)) && (min(count.vector) != 0))
+      table[i, 3] <- ppois(i+offset, lambda.est)*n.region
+    else if (i + offset == max(count.vector))
+      table[i, 3] <- 1 - ppois(i + offset - 1, lambda.est)
+    else
+      table[i, 3] <- (ppois(i+offset, lambda.est) - ppois(i + offset - 1, lambda.est))*n.region
+  }
+  return (table)
+}
+site.random.tabtemp <- chisqtable(n.region, site.random, N)
+
+site.random.tab <- matrix(rep(NA, 7*2), 7, 2)
+site.random.tab[1,] <- colSums(site.random.tabtemp[1:2, 2:3])
+site.random.tab[2:6,] <- site.random.tabtemp[3:7, 2:3]
+site.random.tab[7,] <- colSums(site.random.tabtemp[8:10, 2:3])
+site.random.stats <- sum((site.random.tab[,2] - site.random.tab[,1])^2/site.random.tab[,2])
+pchisq(site.random.stats, 7 - 2, lower.tail=FALSE) #if lower.tail=TRUE then you're testing something else
+
+```
