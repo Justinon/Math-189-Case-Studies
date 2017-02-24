@@ -81,7 +81,7 @@ hist(monteCarloSampleDists.mean)
 Now, we want to build some statistics surrounding the randomly distributed monte carlo simulation.
 Here we will count the longest string of consecutive palindromes using the sorted data, and more.
 ```{r}
-counts <- matrix(data = NA, nrow = B, ncol = 2)
+counts <- matrix(data = NA, nrow = B, ncol = n)
 for (i in 1:B) {
   indexHighestCount <- 0
   tempFirstIndex <- 0
@@ -120,6 +120,7 @@ for (i in 1:B) {
 
 # Clearly, two consecutively is quite normal.
 plot(counts[,1])
+summary(counts[,1])
 ```
 
 Now we have to run the same process on the actualized data, to determine its normality.
@@ -156,6 +157,46 @@ for (i in 2:n) {
 highestCount
 indexHighestCount
 ```
+
+Unfortunately, our realized data matches the above statistics when it comes to consecutive occurances of palindromes, since the max amount of consecutive occurances matched that of the third quartile value above. This means there were no unusually long strings of consecutively occuring palindromes, therefore we'll have to resort to the poisson process in order to help us better determine unusual clusters for the replication site.
+
+## Poisson Process
+
+First, we'll generate a histogram forming the basis of the poisson distribution of clusters.
+```{r}
+k <- 100;         # The interval length for clusters of palindromes
+n <- 296;
+# Split the data into the clustered intervals
+tab <- table(cut(data, breaks = seq(0, 230000, 
+    length.out = k+1), include.lowest = TRUE));
+
+counts <- as.vector(tab);
+
+hist(counts, breaks=seq(0,14,by=1), col = rgb(1,0,0,0.5), 
+     probability = TRUE,
+     xlab = "number of palindromes inside an interval (~ 2300 bases)", 
+     ylim = c(0,0.3), include.lowest = TRUE, right = FALSE);
+lines(density(counts, adjust = 2), col = rgb(1,0,0,0.5))
+Pois <- rpois(296, lambda = mean(counts))
+hist(Pois, breaks=seq(0,13,by=1), col = rgb(0,0,1,0.5), probability = TRUE, add = TRUE,
+     include.lowest = TRUE, right = FALSE);
+lines(density(Pois, adjust = 2), col = rgb(0,0,1,0.5))
+legend("topright", legend = c("data", "Poisson"), lty = c(1,1), col = c(rgb(1,0,0,0.5), rgb(0,0,1,0.5)));
+```
+
+### Finding the Cluster
+Then, we'll calculate the highest likely amount of clusters within any one given interval, and compare it to the highest amount of palindromes we have in any one cluster in the actualized data.
+
+```{r}
+# Here, the 99.95th percentile is calculated to help determine upper outlier.
+highestLikelyCluster <- qpois(.9995, mean(tab))   # Using sample statistic of lambda hat = x bar
+print('The highest likely amount in a cluster is:')
+highestLikelyCluster
+print('and the highest amount of any cluster in our actualized data is:')
+max(tab)
+```
+
+It's clear that with 99.95% probability, a maximum of ten palindromes will be in any one cluster. Due to our outlier of 13, and given it's the only above 10, it seems like a likely candidate for our replication site.
 
 
 ## Chi-Squared Test
