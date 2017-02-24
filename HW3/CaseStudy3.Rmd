@@ -63,8 +63,13 @@ monteCarloSampleDists.mean <- vector(mode="logical", length = B)
 for (i in 1:B) {
   # Row is overall sample, column is data per sample
   monteCarloSampleDists[i,] <- sample.int(N,n)
+  # Need to sort them in order to check consecutive palindromes
+  monteCarloSampleDists[i,] <- monteCarloSampleDists[i,order(monteCarloSampleDists[i,])]
   monteCarloSampleDists.mean[i] <- mean(monteCarloSampleDists[i,])
 }
+
+print(monteCarloSampleDists[1,]) # Just a check for me for now, DELETE ME
+
 hist(monteCarloSampleDists.mean)
 ```
 
