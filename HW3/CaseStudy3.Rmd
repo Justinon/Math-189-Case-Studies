@@ -59,6 +59,17 @@ stripplot(site.random, pch=16, cex=0.25, xlab="Palindrome Location (Simple Rando
 
 It's easy to notice that while although similar, the actualized data may appear to have a couple more dense clusters than what was generated via the simple sample. We will need to perform more testing to confirm whether these apparent clusters are statistically significant within the actualized data.
 
+## Spacing
+Here we create a graph to determine the usualness of spacing in the dataset.
+```{r}
+spacing <- {0}
+for (i in 1:length(data)){
+   spacing[i] <- data[i+1] - data[i];
+}
+spacing <- spacing[!is.na(spacing)]
+plot(spacing, pch=20,col='red', main="Spacing of Palindrome locations", xlab = "Palindrome index", ylab = "Spacing in Base Pairs");
+lines(spacing, y=NULL)
+```
 
 ## Monte Carlo Uniform Simulation
 
