@@ -1,6 +1,11 @@
 ---
-title: "CaseStudy3"
-author: "Justin Glommen"
+title: "Case Study 3"
+author: 
+- Justin Glommen
+- Alex Hsieh
+- Atharva Fulay
+- Peter Yao
+
 date: "2/23/2017"
 output: pdf_document
 ---
@@ -123,7 +128,7 @@ plot(counts[,1])
 summary(counts[,1])
 ```
 
-Now we have to run the same process on the actualized data, to determine its normality.
+Now we have to run the same process on the actualized data, to determine if there's an unusually long string of palindromes to help us easily identify the replication site.
 ```{r}
 indexHighestCount <- 0
 tempFirstIndex <- 0
@@ -158,11 +163,11 @@ highestCount
 indexHighestCount
 ```
 
-Unfortunately, our realized data matches the above statistics when it comes to consecutive occurances of palindromes, since the max amount of consecutive occurances matched that of the third quartile value above. This means there were no unusually long strings of consecutively occuring palindromes, therefore we'll have to resort to the poisson process in order to help us better determine unusual clusters for the replication site.
+Unfortunately, our realized data matches the above statistics when it comes to consecutive occurrences of palindromes, since the max amount of consecutive occurrences matched that of the third quartile value above. This means there were no unusually long strings of consecutively occuring palindromes, therefore we'll have to resort to the poisson process in order to help us better determine unusual clusters for the replication site.
 
 ## Poisson Process
 
-First, we'll generate a histogram forming the basis of the poisson distribution of clusters.
+First, we'll generate a histogram forming the basis of the poisson distribution of clusters given fixed intervals of one hundred.
 ```{r}
 k <- 100;         # The interval length for clusters of palindromes
 n <- 296;
@@ -200,6 +205,7 @@ It's clear that with 99.95% probability, a maximum of ten palindromes will be in
 
 
 ## Chi-Squared Test
+First we perfom chi-squared test on the simulated data.
 ```{r}
 regionsplit <- function(n.region, gene, site){
   count.int <- table(cut(site, breaks = seq(1, length(gene), length.out=n.region+1), include.lowest=TRUE))
@@ -244,8 +250,71 @@ site.random.tabtemp <- chisqtable(n.region, site.random, N)
 site.random.tab <- matrix(rep(NA, 7*2), 7, 2)
 site.random.tab[1,] <- colSums(site.random.tabtemp[1:2, 2:3])
 site.random.tab[2:6,] <- site.random.tabtemp[3:7, 2:3]
-site.random.tab[7,] <- colSums(site.random.tabtemp[8:10, 2:3])
+site.random.tab[7,] <- colSums(site.random.tabtemp[7:9, 2:3])
 site.random.stats <- sum((site.random.tab[,2] - site.random.tab[,1])^2/site.random.tab[,2])
 pchisq(site.random.stats, 7 - 2, lower.tail=FALSE) #if lower.tail=TRUE then you're testing something else
-
 ```
+
+Here we get a result of about .01.
+
+We then again perform the chi-squared test on the real data.
+```{r}
+#actual data
+N <- 229354
+n <- 296
+site.random <- editGene[["location"]]
+
+
+library(lattice)
+stripplot(site.random, pch=16, cex=0.25)
+
+n.region <- 50
+
+regionsplit <- function(n.region, gene, site){
+  count.int <- table(cut(site, breaks = unique(seq(1, N, length.out=n.region+1)), include.lowest=TRUE))
+  count.vector <- as.vector(count.int)
+  count.tab <- table(count.vector)
+  return (count.tab)
+}
+
+regionsplit(n.region, gene, site.random)
+
+chisqtable <- function(n.region, site, N){
+  n <- length(site)
+  # lambda estimate
+  lambda.est <- n/n.region
+  # cut into n.region number of non-overlapping intervals
+  count.int <- table(cut(site, breaks = unique(seq(1, N, length.out=n.region+1)), include.lowest=TRUE))
+  # get the count levels range
+  count.vector <- as.vector(count.int)
+  count.range <- max(count.vector) - min(count.vector) + 1
+  
+  # create contingency table
+  table <- matrix(rep(NA, count.range*3), count.range, 3)
+  for (i in 1:count.range){
+    offset <- min(count.vector) - 1
+    # first column = count level
+    table[i, 1] <- i + offset
+    # second column = observed count
+    table[i, 2] <- sum(count.vector == i + offset)
+    # third column = expected count
+    if ((i + offset == min(count.vector)) && (min(count.vector) != 0))
+      table[i, 3] <- ppois(i+offset, lambda.est)*n.region
+    else if (i + offset == max(count.vector))
+      table[i, 3] <- 1 - ppois(i + offset - 1, lambda.est)
+    else
+      table[i, 3] <- (ppois(i+offset, lambda.est) - ppois(i + offset - 1, lambda.est))*n.region
+  }
+  return (table)
+}
+site.random.tabtemp <- chisqtable(n.region, site.random, N)
+
+site.random.tab <- matrix(rep(NA, 7*2), 7, 2)
+site.random.tab[1,] <- colSums(site.random.tabtemp[1:2, 2:3])
+site.random.tab[2:6,] <- site.random.tabtemp[3:7, 2:3]
+site.random.tab[7,] <- colSums(site.random.tabtemp[7:9, 2:3])
+site.random.stats <- sum((site.random.tab[,2] - site.random.tab[,1])^2/site.random.tab[,2])
+pchisq(site.random.stats, 7 - 2, lower.tail=FALSE) #if lower.tail=TRUE then you're testing something else
+```
+
+We here get a result of about .22.
