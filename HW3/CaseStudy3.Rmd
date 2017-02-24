@@ -57,14 +57,14 @@ It's easy to notice that while although similar, the actualized data may appear 
 ## Monte Carlo Uniform Simulation
 Here we are 
 ```{r}
-B <- 1000 # 1000 bootsrap uniform samples
-monteCarloSampleDists #<- vector(mode="logical", length = B)
-monteCarloSampleDists.mean #<- vector(mode="logical", length = B)
+B <- 1000 # 1000 bootstrap uniform samples
+monteCarloSampleDists <- matrix(data = NA, ncol = n, nrow = B)
+monteCarloSampleDists.mean <- vector(mode="logical", length = B)
 for (i in 1:B) {
-  monteCarloSampleDists[i] <- vector(mode="logical", length = n)
-  monteCarloSampleDists[i]  <- runif( n, min = 1, max = N )
-  monteCarloSampleDists.mean[i] <- mean(monteCarloSampleDists[i])
-} ## I get 'number of items to replace is not a multiple of replacement length', why?
+  # Row is overall sample, column is data per sample
+  monteCarloSampleDists[i,] <- sample.int(N,n)
+  monteCarloSampleDists.mean[i] <- mean(monteCarloSampleDists[i,])
+}
 hist(monteCarloSampleDists.mean)
 ```
 
