@@ -9,26 +9,195 @@ date: "3/7/2017"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, eval=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+install.packages("e1071")
+install.packages("quantreg")
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+# Setup
+Here the data is loaded into its corresponding variable for analysis.
+```{r}
+gauge <- read.table("gauge.txt", header=TRUE)
+head(gauge)
+stringMain <- "Scatter Plot of the Density of Snow vs. Gain of Photons"
+densityLabel <- "Snow pack density (g/cm^3)"
+gainLabel <- "gain"
+plot(gauge, xlab = densityLabel , ylab = gainLabel, main = stringMain)
 ```
 
-## Including Plots
+# Fitting
 
-You can also embed plots, for example:
+We now want to fit the lease squares line of the original data, such that we can plot and use it
+to help us make predictions about the snow-pack densities.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+# Fit least squares line of orig data
+fit <- lm(formula=gain~density, gauge)
+plot(gauge)
+abline(fit, col="red")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Here, we notice that the data follows a somewhat exponential-like pattern. Therefore, in order
+to enhance the regression line, we will take the log of the densities and display that instead.
+
+```{r include=FALSE}
+# Strings
+yLogGainLabel <- "log(gain)"
+transformedStringMain <- "Scatter Plot of the Density of Snow vs. Transformed Gain of Photons"
+```
+
+```{r}
+#transformed data log(gain)
+gauge$gain <- log(gauge$gain)
+#fit least squares line of trans data
+fit <- lm(formula=gain~density, gauge)
+plot(gauge, xlab = densityLabel, ylab = yLogGainLabel, main = transformedStringMain)
+abline(fit, col="red")
+
+#find R^2 of trans data (.9958183)
+R.square <- sum((fit$fitted.values-mean(gauge$gain))^2) / (sum((gauge$gain - mean(gauge$gain))^2))
+R.square
+```
+
+
+# Predicting
+Here is a function which will be used to generate intervals of snow-packed densities based on a given gain, by using the regression prediction generated from above.
+```{r}
+estimating_fn <- function(gainInput){
+  # Log the input
+  inputLog = log(gainInput);
+  # Get the bounds for the interval by adding/subbing the constant margin of error
+  upper_lim <- inputLog + 0.138;
+  lower_lim <- inputLog - 0.138;
+  # Generate the density output on the line of fit by manipulating
+  # the y = mx + b equation of the regression line
+  den = (inputLog - 5.997) / -4.606;
+
+  result <- list(lower_lim, inputLog, lower_lim, den);
+  return(result);
+}
+
+```
+
+Here we construct prediction bands, which acts as a region in which with 95% certainty we can expect the regression line to lie. Therefore, this is helpful in also constructing confidence intervals for the prediction of the density given
+```{r}
+#-----------------------------prediction intervals / bands -------------------------------------------
+fit <- lm(formula=log_gain~density, data=linear_data);
+pred.int =  predict(fit,interval="prediction", level=.95)
+pre.test = predict(fit,interval="prediction")
+
+fitted.values = pred.int[,1]
+pred.lower = pred.int[,2]
+pred.upper = pred.int[,3]
+
+
+plot(linear_data, xlab="Density", ylab="log(gain)", main="Confidence Interval Bands");
+abline(fit, col="red", lwd=1);
+lower = lines(linear_data$density,pred.lower[1:90],lwd=1,col="blue")
+upper = lines(linear_data$density,pred.upper[1:90],lwd=1,col="blue")
+
+# Here we omit the following rows in order to eliminate the .508 density,
+# as per request of the assignment
+data_omit = gauge[-c(21:30), ]
+```
+
+
+
+
+# Extra Analysis 
+```{r} 
+#residuals of trans data
+plot(fit$residuals, ylab = "residuals", main = "Residuals of the Least Squares Line")
+abline(0, 0, col="red")
+
+hist(fit$residuals, xlab = "Residuals", main = "Histogram of Residuals")
+
+library(e1071)   
+skewness(fit$residuals)
+kurtosis(fit$residuals)
+
+x <- gauge[["gain"]]
+quantile(x, probs = seq(0.1, 0.9, by = 0.2))
+
+#quantile regression
+plot(gauge, xlab = "snow pack density", ylab = "gain", main = "Scatter Plot of the Density of Snow vs. Gain of Photons")
+
+library(quantreg)
+
+x <- seq(0, 0.7, length.out = 90)
+y <- x*gauge[["gain"]]
+plot(x, y, pch = ".", ylim = c(-5, 5))
+# median
+fit1 <- rq(y ~ x, tau = 0.5)
+abline(fit1, col = 2)
+
+# true median
+true1 <- x
+lines(x, true1, col = 2, lty = 3)
+
+# 0.2 quantile
+fit2 <- rq(y ~ x, tau = 0.2)
+abline(fit2, col = 3)
+
+# true 0.2 quantile
+true2 <- qnorm(p = 0.2, mean = x, sd = x)
+lines(x, true2, col = 3, lty = 3)
+
+# 0.7 quantile
+fit3 <- rq(y ~ x, tau = 0.7)
+abline(fit3, col = 4)
+
+# true 0.7 quantile
+true3 <- qnorm(p = 0.7, mean = x, sd = x)
+lines(x, true3, col = 4, lty = 3)
+
+legend(x = 0, y = 5, legend = c(expression(paste("estimated", rho, "=", 0.2)),
+                                 expression(paste("estimated", rho, "=", 0.5)),
+                                 expression(paste("estimated", rho, "=", 0.7)),
+                                 expression(paste("true", rho, "=", 0.2)),
+                                 expression(paste("true", rho, "=", 0.5)),
+                                 expression(paste("true", rho, "=", 0.7))),
+       lty = c(1,1,1,3,3,3), col = c(3,2,4,3,2,4))
+
+```
+
+Additional analysis and graphs generated for inspection.
+```{r}
+gain <- gauge["gain"];
+log_gain = log(gain);
+gauge["log_gain"] <- log_gain;
+linear_data <- gauge["density"];
+linear_data["log_gain"] <- gauge["log_gain"];
+
+fit <- lm(formula=log_gain~density, data=linear_data);
+
+plot(linear_data);
+abline(fit, col="red");
+
+plot(fit$residuals);
+abline(0, 0, col="red");
+
+qqnorm(fit$residuals);
+qqline(fit$residuals, col="red");
+
+res.rank <- sort(fit$residuals)
+suspect <- which(fit$residuals %in% res.rank[0:4])
+suspect_high <- which(fit$residuals %in% res.rank[87:90])
+
+fit.out <- lm(formula=log_gain[-suspect][-suspect_high]~density[-suspect][-suspect_high], data=linear_data)
+plot(linear_data, xlab="Density", ylab="log(gain)",main="Comparing Fit Lines")
+abline(fit, col="red")
+abline(fit.out, col="blue")
+legend("topright", legend = c("Original Fit Line", "Fit Line without Outliers"), lty = c(1,1), col = c(rgb(1,0,0,0.5), rgb(0,0,1,0.5)));
+
+
+
+hist(fit$residuals);
+
+R.square <- sum((fit$fitted.values-mean(linear_data$log_gain))^2) / (sum((linear_data$log_gain - mean(linear_data$log_gain))^2))
+R.square.out <- sum((fit.out$fitted.values-mean(linear_data$log_gain[-suspect][-suspect_high]))^2) / (sum((linear_data$log_gain[-suspect][-suspect_high] - mean(linear_data$log_gain[-suspect][-suspect_high]))^2))
+summary(fit)
+
+```
+
