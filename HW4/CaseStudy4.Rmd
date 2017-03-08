@@ -63,36 +63,43 @@ R.square
 
 
 # Predicting
-Two functions are presented which allow for us to generate an estimate density based on a passed in gain, as well as the ability to do the opposite; generate an estimate gain interval based on the passed in density.
+Two functions are presented which allow for us to generate an estimate density interval based on a passed in gain, as well as the ability to do the opposite; generate an estimate gain interval based on the passed in density.
 ```{r}
 estimating_fn <- function(gainInput){
-  # Log the input
-  inputLog <- log(gainInput);
-  # Get the bounds for the interval by adding/subbing the constant margin of error
-  upper_lim_log <- inputLog + 0.138;
-  lower_lim_log <- inputLog - 0.138;
-  upper_lim <- exp(upper_lim_log)
-  lower_lim <- exp(lower_lim_log)
-  # Generate the density output on the line of fit by manipulating
-  # the y = mx + b equation of the regression line
-  den = (inputLog - 5.997) / -4.606;
-
-  result <- matrix(data=NaN, nrow = 3, ncol = 3)
-  result[1,] <- c(lower_lim, gainInput, upper_lim)
-  result[2,] <- c(lower_lim_log, inputLog, upper_lim_log);
-  result[3,1] <- den
+  logGain = log(gainInput);
+  gain <- gainInput
+  
+  estDen = (logGain - 5.997) / -4.606;
+  
+  # Values are the intercepts of where the upper and lower limits
+  # intersect the y-axis
+  den_low = (logGain - 5.861)/ -4.606;
+  den_high = (logGain - 6.134)/ -4.606;
+  
+  result <- matrix(data=NaN, nrow = 3, ncol = 1)
+  result <- c(den_low, estDen, den_high);
+  
   return(result);
 }
 
 
-estimating_fn_dens <- function(densityInput){
-  estLogGain <- densityInput*(-4.606) + 5.997
-  estGain <- exp(estLogGain)
-  return(estimating_fn(estGain))
+estimating_gain_fn <- function(denInput){
+  
+  logGain <- denInput*(-4.606) + 5.997;
+  gain <- exp(logGain)
+  
+  upper_lim_log <- logGain + 0.138;
+  lower_lim_log <- logGain - 0.138;
+  upper_lim <- exp(upper_lim_log)
+  lower_lim <- exp(lower_lim_log)
+  
+  
+  result <- matrix(data=NaN, nrow = 2, ncol = 3)
+  result[1,] <- c(lower_lim_log, logGain, upper_lim_log)
+  result[2,] <- c(lower_lim, gain, upper_lim)
+  
+  return(result);
 }
-
-
-
 ```
 
 Here we construct prediction bands, which acts as a region in which with 95% certainty we can expect the regression line to lie. Therefore, this is helpful in also constructing confidence intervals for the prediction of densities of snow given the gain.
@@ -134,10 +141,10 @@ testDens <- .508
 # Should result in a .508 density estimate
 estimating_fn(testGain)
 # Should result in a 38.6 estimate
-estimating_fn_dens(testDens)
+estimating_gain_fn(testDens)
 # Should result in a 400 estimate
 testDens <- .001
-estimating_fn_dens(testDens)
+estimating_gain_fn(testDens)
 ```
 Clearly here, our result is correct and matches that closely to the original dataset.
 
