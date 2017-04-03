@@ -9,7 +9,7 @@ trainData = pd.read_json("train.json")
 testData = pd.read_json("test.json")
 
 ## Initialize empty dictionaries
-pValues = {'listing_id': {}, 'lowPrice': {}, 'mediumPrice': {}, 'highPrice': {},}
+pValues = {'listing_id': {}, 'lowprice': {}, 'mediumprice': {}, 'highprice': {},}
 # Variables for dataframes
 trainLowInterestDistribution = {}
 trainMedInterestDistribution = {}
@@ -92,38 +92,53 @@ print("Low Interest Rentals:\n", trainLowInterestDistribution.head())
 print("Medium Interest Rentals:\n", trainMedInterestDistribution.head())
 print("High Interest Rentals:\n", trainHighInterestDistribution.head())
 
+# To create a fully iterable list of counts
+concatList = pd.concat([trainLowInterestDistribution, trainMedInterestDistribution, trainHighInterestDistribution])
+concatList = concatList.sort_index(0)
+
+# Generate the dictionaries for the pValues of each respective category
+for column, items in concatList.iteritems():
+    if column == 'listing_id':
+        continue
+    pValues[column+'_low'] = {}
+    pValues[column+'_medium'] = {}
+    pValues[column+'_high'] = {}
+
 # Now, we generate pValues by calling stats.percentileofscore and doing a two-tailed result
-for index, row in trainData.iterrows():
-    pValLow = 0
-    pValMed = 0
-    pValHigh = 0
-    pValues['listing_id'][index] = row['listing_id']
-    percentileLow = stats.percentileofscore(trainLowInterestDistribution['price'], row['price'])
-    percentileMed = stats.percentileofscore(trainMedInterestDistribution['price'], row['price'])
-    percentileHigh = stats.percentileofscore(trainHighInterestDistribution['price'], row['price'])
+# Then we store the pValues into the pValue dictionaries we just created
+for index, row in concatList.iterrows():
+    for column, items in concatList.iteritems():
+        if column == 'listing_id':
+            continue
+        pValLow = 0
+        pValMed = 0
+        pValHigh = 0
+        pValues['listing_id'][index] = row['listing_id']
+        percentileLow = stats.percentileofscore(trainLowInterestDistribution[column], row[column])
+        percentileMed = stats.percentileofscore(trainMedInterestDistribution[column], row[column])
+        percentileHigh = stats.percentileofscore(trainHighInterestDistribution[column], row[column])
 
-    # This step is finding the pValue using the quantile of the distribution
-    if percentileLow <= 50:
-        pValLow = (percentileLow*2)/100
-    elif percentileLow > 50:
-        pValLow = ((100 - percentileLow)*2)/100
-    pValues['lowPrice'][index] = pValLow
+        # This step is finding the pValue using the quantile of the distribution
+        if percentileLow <= 50:
+            pValLow = (percentileLow*2)/100
+        elif percentileLow > 50:
+            pValLow = ((100 - percentileLow)*2)/100
+        pValues[column+'_low'][index] = pValLow
 
-    if percentileMed <= 50:
-        pValMed = (percentileMed*2)/100
-    elif percentileMed > 50:
-        pValMed = ((100 - percentileMed)*2)/100
-    pValues['mediumPrice'][index] = pValMed
+        if percentileMed <= 50:
+            pValMed = (percentileMed*2)/100
+        elif percentileMed > 50:
+            pValMed = ((100 - percentileMed)*2)/100
+        pValues[column+'_medium'][index] = pValMed
 
-    if percentileHigh <= 50:
-        pValHigh = (percentileHigh*2)/100
-    elif percentileHigh > 50:
-        pValHigh = ((100 - percentileHigh)*2)/100
-    pValues['highPrice'][index] = pValHigh
+        if percentileHigh <= 50:
+            pValHigh = (percentileHigh*2)/100
+        elif percentileHigh > 50:
+            pValHigh = ((100 - percentileHigh)*2)/100
+        pValues[column+'_high'][index] = pValHigh
 
 pValues = pd.DataFrame(pValues)
-print(pValues.head())
+print("P-Values:\n",pValues.head())
 
-# Then, we do this whole process for every factor that we deem influential to interest_level.
-# After that, we take those pVals and average them for each listing, and then normalize them to form the
+# Now, we take those pVals and average the resoective categories for each listing, and then normalize them to form the
 # probabilities.
