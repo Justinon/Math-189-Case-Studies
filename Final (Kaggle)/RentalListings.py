@@ -13,33 +13,82 @@ pricePvalues = {}
 trainLowInterestIndexToPrice = {}
 trainMedInterestIndexToPrice = {}
 trainHighInterestIndexToPrice = {}
-trainLowInterestList = {}
-trainMedInterestList = {}
-trainHighInterestList = {}
+
+## Sample distributions
+trainLowInterestNumFeatureList = {}
+trainMedInterestNumFeatureList = {}
+trainHighInterestNumFeatureList = {}
+trainLowInterestNumPhotosList = {}
+trainMedInterestNumPhotosList = {}
+trainHighInterestNumPhotosList = {}
+trainLowInterestListingIdList = {}
+trainMedInterestListingIdList = {}
+trainHighInterestListingIdList = {}
+trainLowInterestPriceList = {}
+trainMedInterestPriceList = {}
+trainHighInterestPriceList = {}
 
 ## Create the sample distribution of different interest_level rental prices
-# Create the list of index to prices
+# Create the list of index to prices and number of features
 for index,row in trainData.iterrows():
     interestLevel = row['interest_level']
     if interestLevel == 'low':
-        trainLowInterestList[index] = row['price']
+        trainLowInterestPriceList[index] = row['price']
+        trainLowInterestNumFeatureList[index] = len(row['features'])
+        trainLowInterestNumPhotosList[index] = len(row['photos'])
+        trainLowInterestListingIdList[index] = row['listing_id']
     elif interestLevel == 'medium':
-        trainMedInterestList[index] = row['price']
+        trainMedInterestPriceList[index] = row['price']
+        trainMedInterestNumFeatureList[index] = len(row['features'])
+        trainMedInterestNumPhotosList[index] = len(row['photos'])
+        trainMedInterestListingIdList[index] = row['listing_id']
     elif interestLevel == 'high':
-        trainHighInterestList[index] = row['price']
+        trainHighInterestPriceList[index] = row['price']
+        trainHighInterestNumFeatureList[index] = len(row['features'])
+        trainHighInterestNumPhotosList[index] = len(row['photos'])
+        trainHighInterestListingIdList[index] = row['listing_id']
 
-trainMedInterestList = pd.Series(trainMedInterestList)
-trainLowInterestList = pd.Series(trainLowInterestList)
-trainHighInterestList = pd.Series(trainHighInterestList)
+# Convert dictionaries to Series
+trainMedInterestPriceList = pd.Series(trainMedInterestPriceList)
+trainLowInterestPriceList = pd.Series(trainLowInterestPriceList)
+trainHighInterestPriceList = pd.Series(trainHighInterestPriceList)
+trainLowInterestNumPhotosList = pd.Series(trainLowInterestNumPhotosList)
+trainMedInterestNumPhotosList = pd.Series(trainMedInterestNumPhotosList)
+trainHighInterestNumPhotosList = pd.Series(trainHighInterestNumPhotosList)
+trainLowInterestNumFeatureList = pd.Series(trainLowInterestNumFeatureList)
+trainMedInterestNumFeatureList = pd.Series(trainMedInterestNumFeatureList)
+trainHighInterestNumFeatureList = pd.Series(trainHighInterestNumFeatureList)
+trainLowInterestListingIdList = pd.Series(trainLowInterestListingIdList)
+trainMedInterestListingIdList = pd.Series(trainMedInterestListingIdList)
+trainHighInterestListingIdList = pd.Series(trainHighInterestListingIdList)
 
 # Create the dataframes of interest_level distributions of prices
 ## We will use these distributions to generate the pValues
-d = {'price': trainLowInterestList,}
+d = {
+    'price': trainLowInterestPriceList,
+    'photos': trainLowInterestNumPhotosList,
+    'features': trainLowInterestNumFeatureList,
+    'listing_id': trainLowInterestListingIdList,
+}
 trainLowInterestIndexToPrice = pd.DataFrame(d)
-d = {'price': trainMedInterestList,}
+d = {
+    'price': trainMedInterestPriceList,
+    'photos': trainMedInterestNumPhotosList,
+    'features': trainMedInterestNumFeatureList,
+    'listing_id': trainMedInterestListingIdList,
+}
 trainMedInterestIndexToPrice = pd.DataFrame(d)
-d = {'price': trainHighInterestList,}
+d = {
+    'price': trainHighInterestPriceList,
+    'photos': trainHighInterestNumPhotosList,
+    'features': trainHighInterestNumFeatureList,
+    'listing_id': trainHighInterestListingIdList,
+}
 trainHighInterestIndexToPrice = pd.DataFrame(d)
+
+# Demonstration of what was done above
+print(trainHighInterestIndexToPrice.head())
+print(trainLowInterestIndexToPrice.head())
 
 # Now, we generate pValues by calling stats.percentileofscore(distribution, score) and doing a two-tailed result
 
