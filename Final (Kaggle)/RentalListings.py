@@ -8,13 +8,14 @@ colors = sns.color_palette()
 trainData = pd.read_json("train.json")
 testData = pd.read_json("test.json")
 
-# Initialize empty dictionaries
+## Initialize empty dictionaries
 pricePvalues = {}
-trainLowInterestIndexToPrice = {}
-trainMedInterestIndexToPrice = {}
-trainHighInterestIndexToPrice = {}
+# Variables for dataframes
+trainLowInterestDistribution = {}
+trainMedInterestDistribution = {}
+trainHighInterestDistribution = {}
 
-## Sample distributions
+# Sample distributions to insert into dataframes
 trainLowInterestNumFeatureList = {}
 trainMedInterestNumFeatureList = {}
 trainHighInterestNumFeatureList = {}
@@ -70,25 +71,26 @@ d = {
     'features': trainLowInterestNumFeatureList,
     'listing_id': trainLowInterestListingIdList,
 }
-trainLowInterestIndexToPrice = pd.DataFrame(d)
+trainLowInterestDistribution = pd.DataFrame(d)
 d = {
     'price': trainMedInterestPriceList,
     'photos': trainMedInterestNumPhotosList,
     'features': trainMedInterestNumFeatureList,
     'listing_id': trainMedInterestListingIdList,
 }
-trainMedInterestIndexToPrice = pd.DataFrame(d)
+trainMedInterestDistribution = pd.DataFrame(d)
 d = {
     'price': trainHighInterestPriceList,
     'photos': trainHighInterestNumPhotosList,
     'features': trainHighInterestNumFeatureList,
     'listing_id': trainHighInterestListingIdList,
 }
-trainHighInterestIndexToPrice = pd.DataFrame(d)
+trainHighInterestDistribution = pd.DataFrame(d)
 
 # Demonstration of what was done above
-print(trainHighInterestIndexToPrice.head())
-print(trainLowInterestIndexToPrice.head())
+print("Low Interest Rentals:\n", trainLowInterestDistribution.head())
+print("Medium Interest Rentals:\n", trainMedInterestDistribution.head())
+print("High Interest Rentals:\n", trainHighInterestDistribution.head())
 
 # Now, we generate pValues by calling stats.percentileofscore(distribution, score) and doing a two-tailed result
 
