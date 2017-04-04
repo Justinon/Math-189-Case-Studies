@@ -3,13 +3,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 
-colors = sns.color_palette()
-
 trainData = pd.read_json("train.json")
-testData = pd.read_json("test.json")
+#testData = pd.read_json("test.json")
 
 ## Initialize empty dictionaries
-pValues = {'listing_id': {}, 'lowprice': {}, 'mediumprice': {}, 'highprice': {},}
+pValues = {'listing_id': {},}
+probabilityDataFrame = {'low': {}, 'medium': {}, 'high': {}, 'listing_id': {},}
 # Variables for dataframes
 trainLowInterestDistribution = {}
 trainMedInterestDistribution = {}
@@ -104,12 +103,21 @@ for column, items in concatList.iteritems():
     pValues[column+'_medium'] = {}
     pValues[column+'_high'] = {}
 
+
+DELETEME = 0
 # Now, we generate pValues by calling stats.percentileofscore and doing a two-tailed result
 # Then we store the pValues into the pValue dictionaries we just created
 for index, row in concatList.iterrows():
+    if DELETEME == 10:
+        break
+    pValCounter = 0
+    pValLowSum = 0
+    pValMedSum = 0
+    pValHighSum = 0
     for column, items in concatList.iteritems():
         if column == 'listing_id':
             continue
+        pValCounter += 1
         pValLow = 0
         pValMed = 0
         pValHigh = 0
@@ -137,8 +145,40 @@ for index, row in concatList.iterrows():
             pValHigh = ((100 - percentileHigh)*2)/100
         pValues[column+'_high'][index] = pValHigh
 
-pValues = pd.DataFrame(pValues)
-print("P-Values:\n",pValues.head())
+        # Algorithm for probabilities of interest takes the average of the pValues as a sort of hypothesis test
+        pValLowSum += pValLow
+        pValMedSum += pValMed
+        pValHighSum += pValHigh
 
+    # The average for each category pValue is taken, and then all are normalized to sum to one
+    pValLowAverage = pValLowSum / pValCounter
+    pValMedAverage = pValMedSum /pValCounter
+    pValHighAverage = pValHighSum / pValCounter
+    pValSum = pValLowAverage + pValMedAverage + pValHighAverage
+
+    # Forming the final probabilities based on the pValues
+    lowProbability = pValLowAverage/pValSum
+    medProbability = pValMedAverage/pValSum
+    highProbability = pValHighAverage/pValSum
+
+    probabilityDataFrame['low'][index] = lowProbability
+    probabilityDataFrame['medium'][index] = medProbability
+    probabilityDataFrame['high'][index] = highProbability
+    probabilityDataFrame['listing_id'][index] = row['listing_id']
+
+    DELETEME += 1
+
+pValues = pd.DataFrame(pValues)
+probabilityDataFrame = pd.DataFrame(probabilityDataFrame)
+
+# Arrange order of columns for CSV file
+cols = probabilityDataFrame.columns.tolist()
+reorderedCols =[1,0,3,2]
+cols = [ cols[i] for i in reorderedCols]
+probabilityDataFrame = probabilityDataFrame[cols]
+probabilityDataFrame.to_csv("trainListings.csv", index=False)
+
+print("P-Values:\n", pValues.head())
+print("Probabilities:\n", probabilityDataFrame.head())
 # Now, we take those pVals and average the resoective categories for each listing, and then normalize them to form the
 # probabilities.
