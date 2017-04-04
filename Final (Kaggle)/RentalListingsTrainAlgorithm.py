@@ -1,9 +1,16 @@
+#!/usr/bin/env python
+
+"""RentailListingsTrainAlgorithm.py: Outputs test information for generating probabilities of a training dataset."""
+
 import pandas as pd
-import numpy as np
 from scipy import stats
 
+#############################
+__author__ = "Justin Glommen"
+__date__ = "4/2/17"
+#############################
+
 trainData = pd.read_json("train.json")
-#testData = pd.read_json("test.json")
 
 ## Initialize empty dictionaries
 pValues = {'listing_id': {},}

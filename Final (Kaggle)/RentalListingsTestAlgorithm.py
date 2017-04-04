@@ -1,6 +1,14 @@
+#!/usr/bin/env python
+
+"""RentailListingsTestAlgorithm.py: Outputs to a csv file the generated probabilities of a test dataset."""
+
 import pandas as pd
-import numpy as np
 from scipy import stats
+
+#############################
+__author__ = "Justin Glommen"
+__date__ = "4/2/17"
+#############################
 
 trainData = pd.read_json("train.json")
 testData = pd.read_json("test.json")
