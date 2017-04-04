@@ -1,6 +1,5 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 from scipy import stats
 
 trainData = pd.read_json("train.json")
@@ -21,6 +20,9 @@ trainHighInterestNumFeatureList = {}
 trainLowInterestNumPhotosList = {}
 trainMedInterestNumPhotosList = {}
 trainHighInterestNumPhotosList = {}
+trainLowInterestNumBedroomsList = {}
+trainMedInterestNumBedroomsList = {}
+trainHighInterestNumBedroomsList = {}
 trainLowInterestListingIdList = {}
 trainMedInterestListingIdList = {}
 trainHighInterestListingIdList = {}
@@ -37,16 +39,19 @@ for index,row in trainData.iterrows():
         trainLowInterestNumFeatureList[index] = len(row['features'])
         trainLowInterestNumPhotosList[index] = len(row['photos'])
         trainLowInterestListingIdList[index] = row['listing_id']
+        trainLowInterestNumBedroomsList[index] = row['bedrooms']
     elif interestLevel == 'medium':
         trainMedInterestPriceList[index] = row['price']
         trainMedInterestNumFeatureList[index] = len(row['features'])
         trainMedInterestNumPhotosList[index] = len(row['photos'])
         trainMedInterestListingIdList[index] = row['listing_id']
+        trainMedInterestNumBedroomsList[index] = row['bedrooms']
     elif interestLevel == 'high':
         trainHighInterestPriceList[index] = row['price']
         trainHighInterestNumFeatureList[index] = len(row['features'])
         trainHighInterestNumPhotosList[index] = len(row['photos'])
         trainHighInterestListingIdList[index] = row['listing_id']
+        trainHighInterestNumBedroomsList[index] = row['bedrooms']
 
 # Convert dictionaries to Series
 trainMedInterestPriceList = pd.Series(trainMedInterestPriceList)
@@ -55,6 +60,9 @@ trainHighInterestPriceList = pd.Series(trainHighInterestPriceList)
 trainLowInterestNumPhotosList = pd.Series(trainLowInterestNumPhotosList)
 trainMedInterestNumPhotosList = pd.Series(trainMedInterestNumPhotosList)
 trainHighInterestNumPhotosList = pd.Series(trainHighInterestNumPhotosList)
+trainLowInterestNumBedroomsList = pd.Series(trainLowInterestNumBedroomsList)
+trainMedInterestNumBedroomsList = pd.Series(trainMedInterestNumBedroomsList)
+trainHighInterestNumBedroomsList = pd.Series(trainHighInterestNumBedroomsList)
 trainLowInterestNumFeatureList = pd.Series(trainLowInterestNumFeatureList)
 trainMedInterestNumFeatureList = pd.Series(trainMedInterestNumFeatureList)
 trainHighInterestNumFeatureList = pd.Series(trainHighInterestNumFeatureList)
@@ -69,6 +77,7 @@ d = {
     'photos': trainLowInterestNumPhotosList,
     'features': trainLowInterestNumFeatureList,
     'listing_id': trainLowInterestListingIdList,
+    'bedrooms': trainLowInterestNumBedroomsList,
 }
 trainLowInterestDistribution = pd.DataFrame(d)
 d = {
@@ -76,6 +85,7 @@ d = {
     'photos': trainMedInterestNumPhotosList,
     'features': trainMedInterestNumFeatureList,
     'listing_id': trainMedInterestListingIdList,
+    'bedrooms': trainMedInterestNumBedroomsList,
 }
 trainMedInterestDistribution = pd.DataFrame(d)
 d = {
@@ -83,6 +93,7 @@ d = {
     'photos': trainHighInterestNumPhotosList,
     'features': trainHighInterestNumFeatureList,
     'listing_id': trainHighInterestListingIdList,
+    'bedrooms': trainHighInterestNumBedroomsList,
 }
 trainHighInterestDistribution = pd.DataFrame(d)
 
@@ -104,11 +115,11 @@ for column, items in concatList.iteritems():
     pValues[column+'_high'] = {}
 
 
-DELETEME = 0
+DELETEME_COUNT_TO_INCREASE_RENDER_TIME_FOR_TESTING = 0
 # Now, we generate pValues by calling stats.percentileofscore and doing a two-tailed result
 # Then we store the pValues into the pValue dictionaries we just created
 for index, row in concatList.iterrows():
-    if DELETEME == 10:
+    if DELETEME_COUNT_TO_INCREASE_RENDER_TIME_FOR_TESTING == 1000:
         break
     pValCounter = 0
     pValLowSum = 0
@@ -131,29 +142,54 @@ for index, row in concatList.iterrows():
             pValLow = (percentileLow*2)/100
         elif percentileLow > 50:
             pValLow = ((100 - percentileLow)*2)/100
-        pValues[column+'_low'][index] = pValLow
 
         if percentileMed <= 50:
             pValMed = (percentileMed*2)/100
         elif percentileMed > 50:
             pValMed = ((100 - percentileMed)*2)/100
-        pValues[column+'_medium'][index] = pValMed
 
         if percentileHigh <= 50:
             pValHigh = (percentileHigh*2)/100
         elif percentileHigh > 50:
             pValHigh = ((100 - percentileHigh)*2)/100
-        pValues[column+'_high'][index] = pValHigh
+
+        # If price pVal is super high, then reflect that in probabilities generated
+        # Typically high priced houses have low-medium interest
+        if column == 'price':
+            if pValLow <= .05 or pValMed <= .05 or pValHigh <= .05:
+                pValLow = .999999
+                pValMed = .25
+                pValHigh = .05
+
+        # Store into the pValues table for our information
+        pValues[column + '_low'][index] = pValLow
+        pValues[column + '_medium'][index] = pValMed
+        pValues[column + '_high'][index] = pValHigh
+
+        # Does not include any insignificant pValues in the probability generation.
+        # If the difference between the maximum and minimum pValues is less than 20%,
+        maxPVal = max([pValLow, pValMed, pValHigh])
+        minPVal = min([pValLow, pValMed, pValHigh])
+        if not (maxPVal - minPVal) >= .175:
+            pValCounter -= 1
+            continue
 
         # Algorithm for probabilities of interest takes the average of the pValues as a sort of hypothesis test
         pValLowSum += pValLow
         pValMedSum += pValMed
         pValHighSum += pValHigh
 
+    # If all pValues were too similar, then we say they have equal probability
+    if pValCounter == 0:
+        pValLowAverage = .33
+        pValMedAverage = .33
+        pValHighAverage = .33
+    else:
     # The average for each category pValue is taken, and then all are normalized to sum to one
-    pValLowAverage = pValLowSum / pValCounter
-    pValMedAverage = pValMedSum /pValCounter
-    pValHighAverage = pValHighSum / pValCounter
+        pValLowAverage = pValLowSum / pValCounter
+        pValMedAverage = pValMedSum /pValCounter
+        pValHighAverage = pValHighSum / pValCounter
+
     pValSum = pValLowAverage + pValMedAverage + pValHighAverage
 
     # Forming the final probabilities based on the pValues
@@ -166,7 +202,7 @@ for index, row in concatList.iterrows():
     probabilityDataFrame['high'][index] = highProbability
     probabilityDataFrame['listing_id'][index] = row['listing_id']
 
-    DELETEME += 1
+    DELETEME_COUNT_TO_INCREASE_RENDER_TIME_FOR_TESTING += 1
 
 pValues = pd.DataFrame(pValues)
 probabilityDataFrame = pd.DataFrame(probabilityDataFrame)
@@ -178,7 +214,40 @@ cols = [ cols[i] for i in reorderedCols]
 probabilityDataFrame = probabilityDataFrame[cols]
 probabilityDataFrame.to_csv("trainListings.csv", index=False)
 
-print("P-Values:\n", pValues.head())
-print("Probabilities:\n", probabilityDataFrame.head())
-# Now, we take those pVals and average the resoective categories for each listing, and then normalize them to form the
-# probabilities.
+print("P-Values:\n", pValues)
+print("Probabilities:\n", probabilityDataFrame)
+
+
+# TESTING
+perfectGuesses = 0
+plausibleGuesses = 0
+totalGuesses = 0
+for index, row in probabilityDataFrame.iterrows():
+    listOfPVals = [row['low'], row['medium'], row['high']]
+    maximum = max(listOfPVals)
+    for column, series in probabilityDataFrame.iteritems():
+        if column == 'listing_id':
+            continue
+        if probabilityDataFrame[column][index] == maximum:
+            if column == trainData['interest_level'][index]:
+                perfectGuesses += 1
+                plausibleGuesses += 1
+                break
+            else:
+                predictedActualValue = row[trainData['interest_level'][index]]
+                # No more than 20% probability difference, and at least 10% chance constitutes a plausible guess
+                if (abs(predictedActualValue - maximum) <= .2) and (predictedActualValue > .1):
+                    plausibleGuesses += 1
+                    break
+    totalGuesses += 1
+# Generate results
+accuracyPerfectPercent = ((float(perfectGuesses))/totalGuesses)
+accuracyPlausiblePercent = ((float(plausibleGuesses))/totalGuesses)
+
+# TEST RESULTS
+print("Perfect guesses: ", perfectGuesses)
+print("Plausible guesses: ", plausibleGuesses)
+print("Total guesses: ", totalGuesses)
+print("Perfect accuracy: ", accuracyPerfectPercent)
+print("Plausible accuracy: ", accuracyPlausiblePercent)
+
