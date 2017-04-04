@@ -119,7 +119,7 @@ DELETEME_COUNT_TO_INCREASE_RENDER_TIME_FOR_TESTING = 0
 # Now, we generate pValues by calling stats.percentileofscore and doing a two-tailed result
 # Then we store the pValues into the pValue dictionaries we just created
 for index, row in concatList.iterrows():
-    if DELETEME_COUNT_TO_INCREASE_RENDER_TIME_FOR_TESTING == 1000:
+    if DELETEME_COUNT_TO_INCREASE_RENDER_TIME_FOR_TESTING >= len(trainData['price'])/10:
         break
     pValCounter = 0
     pValLowSum = 0
@@ -168,9 +168,10 @@ for index, row in concatList.iterrows():
 
         # Does not include any insignificant pValues in the probability generation.
         # If the difference between the maximum and minimum pValues is less than 20%,
+        # then the difference is not significant.
         maxPVal = max([pValLow, pValMed, pValHigh])
         minPVal = min([pValLow, pValMed, pValHigh])
-        if not (maxPVal - minPVal) >= .175:
+        if maxPVal - minPVal <= .2:
             pValCounter -= 1
             continue
 
@@ -210,12 +211,12 @@ probabilityDataFrame = pd.DataFrame(probabilityDataFrame)
 # Arrange order of columns for CSV file
 cols = probabilityDataFrame.columns.tolist()
 reorderedCols =[1,0,3,2]
-cols = [ cols[i] for i in reorderedCols]
+cols = [cols[i] for i in reorderedCols]
 probabilityDataFrame = probabilityDataFrame[cols]
 probabilityDataFrame.to_csv("trainListings.csv", index=False)
 
-print("P-Values:\n", pValues)
-print("Probabilities:\n", probabilityDataFrame)
+print("P-Values:\n", pValues.head())
+print("Probabilities:\n", probabilityDataFrame.head())
 
 
 # TESTING
@@ -240,6 +241,7 @@ for index, row in probabilityDataFrame.iterrows():
                     plausibleGuesses += 1
                     break
     totalGuesses += 1
+
 # Generate results
 accuracyPerfectPercent = ((float(perfectGuesses))/totalGuesses)
 accuracyPlausiblePercent = ((float(plausibleGuesses))/totalGuesses)
@@ -250,4 +252,3 @@ print("Plausible guesses: ", plausibleGuesses)
 print("Total guesses: ", totalGuesses)
 print("Perfect accuracy: ", accuracyPerfectPercent)
 print("Plausible accuracy: ", accuracyPlausiblePercent)
-
