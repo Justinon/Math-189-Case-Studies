@@ -3,6 +3,7 @@
 """RentailListingsTrainAlgorithm.py: Outputs test information for generating probabilities of a training dataset."""
 
 import pandas as pd
+import numpy as np
 from scipy import stats
 
 #############################
@@ -126,7 +127,7 @@ DELETEME_COUNT_TO_INCREASE_RENDER_TIME_FOR_TESTING = 0
 # Now, we generate pValues by calling stats.percentileofscore and doing a two-tailed result
 # Then we store the pValues into the pValue dictionaries we just created
 for index, row in concatList.iterrows():
-    if DELETEME_COUNT_TO_INCREASE_RENDER_TIME_FOR_TESTING >= len(trainData['price'])/10:
+    if DELETEME_COUNT_TO_INCREASE_RENDER_TIME_FOR_TESTING >= 1000:
         break
     pValCounter = 0
     pValLowSum = 0
@@ -140,30 +141,73 @@ for index, row in concatList.iterrows():
         pValMed = 0
         pValHigh = 0
         pValues['listing_id'][index] = row['listing_id']
-        percentileLow = stats.percentileofscore(trainLowInterestDistribution[column], row[column])
-        percentileMed = stats.percentileofscore(trainMedInterestDistribution[column], row[column])
-        percentileHigh = stats.percentileofscore(trainHighInterestDistribution[column], row[column])
 
-        # This step is finding the pValue using the quantile of the distribution
-        if percentileLow <= 50:
-            pValLow = (percentileLow*2)/100
-        elif percentileLow > 50:
-            pValLow = ((100 - percentileLow)*2)/100
+        # Calculate the extremity of the score for each
+        # Setting the tStatistic to the other half of the extremity to calculate the second part of pValue
+        mean = np.mean(trainLowInterestDistribution[column])
+        sampleDev = np.std(trainLowInterestDistribution[column])
+        tStatisticLow = ((row[column] - mean)/sampleDev)*(-1)
+        # Score at opposite extremity from current score since not normally distributed
+        scoreAtLowTStat = (sampleDev*tStatisticLow) + mean
 
-        if percentileMed <= 50:
-            pValMed = (percentileMed*2)/100
-        elif percentileMed > 50:
-            pValMed = ((100 - percentileMed)*2)/100
+        mean = np.mean(trainMedInterestDistribution[column])
+        sampleDev = np.std(trainMedInterestDistribution[column])
+        tStatisticMed = ((row[column] - mean) / sampleDev)*(-1)
+        # Score at opposite extremity from current score since not normally distributed
+        scoreAtMedTStat = (sampleDev*tStatisticMed) + mean
 
-        if percentileHigh <= 50:
-            pValHigh = (percentileHigh*2)/100
-        elif percentileHigh > 50:
-            pValHigh = ((100 - percentileHigh)*2)/100
+        mean = np.mean(trainHighInterestDistribution[column])
+        sampleDev = np.std(trainHighInterestDistribution[column])
+        tStatisticHigh = ((row[column] - mean) / sampleDev)*(-1)
+        # Score at opposite extremity from current score since not normally distributed
+        scoreAtHighTStat = (sampleDev*tStatisticHigh) + mean
+
+        firstLowP = stats.percentileofscore(trainLowInterestDistribution[column], row[column])
+        firstMedP = stats.percentileofscore(trainMedInterestDistribution[column], row[column])
+        firstHighP = stats.percentileofscore(trainHighInterestDistribution[column], row[column])
+
+        # This step is finding the first part of the P value for the first half of the extremity
+        if firstLowP > 50:
+            pValLow = (100 - firstLowP) / 100
+        else:
+            pValLow = firstLowP/100
+
+        if firstMedP > 50:
+            pValMed = (100 - firstMedP) / 100
+        else:
+            pValMed = firstMedP/100
+
+        if firstHighP > 50:
+            pValHigh = (100 - firstHighP) / 100
+        else:
+            pValHigh = firstHighP/100
+
+        secondLowP = stats.percentileofscore(trainLowInterestDistribution[column], scoreAtLowTStat)
+        secondMedP = stats.percentileofscore(trainMedInterestDistribution[column], scoreAtMedTStat)
+        secondHighP = stats.percentileofscore(trainHighInterestDistribution[column], scoreAtHighTStat)
+
+        # This step is finding the second part of the P value for the second half of the extremity
+        # and adding it to the overall pValues
+        if secondLowP > 50:
+            pValLow += (100 - secondLowP) / 100
+        else:
+            pValLow += secondLowP/100
+
+        if secondMedP > 50:
+            pValMed += (100 - secondMedP) / 100
+        else:
+            pValMed += secondMedP/100
+
+        if secondHighP > 50:
+            pValHigh += (100 - secondHighP) / 100
+        else:
+            pValHigh += secondHighP/100
+
 
         # If price pVal is super high, then reflect that in probabilities generated
         # Typically high priced houses have low-medium interest
         if column == 'price':
-            if pValLow <= .05 or pValMed <= .05 or pValHigh <= .05:
+            if pValMed <= .05 and pValHigh <= .05:
                 pValLow = .999999
                 pValMed = .25
                 pValHigh = .05
@@ -249,3 +293,11 @@ accuracyPerfectPercent = ((float(perfectGuesses))/totalGuesses)
 print("Perfect guesses: ", perfectGuesses)
 print("Total guesses: ", totalGuesses)
 print("Perfect accuracy: ", accuracyPerfectPercent)
+
+logloss = 0
+counter = 0
+for index, row in probabilityDataFrame.iterrows():
+    logloss += np.log(row[trainData['interest_level'][index]])
+    counter += 1
+logloss = (logloss/counter)*(-1)
+print("Logloss: ", logloss)
