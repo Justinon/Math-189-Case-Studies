@@ -227,8 +227,8 @@ print("Probabilities:\n", probabilityDataFrame.head())
 
 
 # TESTING
+# Guess is 'perfect' if the highest probability matches the correct interest level of the listing
 perfectGuesses = 0
-plausibleGuesses = 0
 totalGuesses = 0
 for index, row in probabilityDataFrame.iterrows():
     listOfPVals = [row['low'], row['medium'], row['high']]
@@ -239,23 +239,13 @@ for index, row in probabilityDataFrame.iterrows():
         if probabilityDataFrame[column][index] == maximum:
             if column == trainData['interest_level'][index]:
                 perfectGuesses += 1
-                plausibleGuesses += 1
                 break
-            else:
-                predictedActualValue = row[trainData['interest_level'][index]]
-                # No more than 20% probability difference, and at least 10% chance constitutes a plausible guess
-                if (abs(predictedActualValue - maximum) <= .2) and (predictedActualValue > .1):
-                    plausibleGuesses += 1
-                    break
     totalGuesses += 1
 
 # Generate results
 accuracyPerfectPercent = ((float(perfectGuesses))/totalGuesses)
-accuracyPlausiblePercent = ((float(plausibleGuesses))/totalGuesses)
 
 # TEST RESULTS
 print("Perfect guesses: ", perfectGuesses)
-print("Plausible guesses: ", plausibleGuesses)
 print("Total guesses: ", totalGuesses)
 print("Perfect accuracy: ", accuracyPerfectPercent)
-print("Plausible accuracy: ", accuracyPlausiblePercent)

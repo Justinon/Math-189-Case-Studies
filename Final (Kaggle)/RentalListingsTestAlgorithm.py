@@ -207,7 +207,7 @@ for index, row in testDistribution.iterrows():
     else:
         # The average for each category pValue is taken, and then all are normalized to sum to one
         pValLowAverage = pValLowSum / pValCounter
-        pValMedAverage = pValMedSum /pValCounter
+        pValMedAverage = pValMedSum / pValCounter
         pValHighAverage = pValHighSum / pValCounter
 
     pValSum = pValLowAverage + pValMedAverage + pValHighAverage
